@@ -1,0 +1,13 @@
+{
+  "name": "compile-service",
+  "version": "1.0.0",
+  "description": "Compiles submitted Arduino sketches to .hex using avr-gcc + ArduinoCore-avr",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "license": "ISC",
+  "dependencies": {
+    "express": "^5.2.1"
+  }
+}
