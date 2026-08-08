@@ -1,14 +1,24 @@
 const express = require('express');
+const cors = require('cors');
 const { execFile } = require('child_process');
 const fs = require('fs');
 const os = require('os');
 const path = require('path');
 
 const app = express();
-app.use(express.json({ limit: '256kb' })); // sketches are small; cap request size defensively
+app.use(cors()); // the web app runs on a different port (Vite dev server) -- needs cross-origin access
+app.use(express.json({ limit: '256kb' }));
 
-const BUILD_SCRIPT = path.join(__dirname, '..', 'build.sh');
-const COMPILE_TIMEOUT_MS = 10_000; // hard cap so one bad build can't hang a worker
+const BUILD_SCRIPT = toPosixPath(path.join(__dirname, '..', 'build.sh'));
+const COMPILE_TIMEOUT_MS = 10_000;
+
+// On Windows, paths use backslashes. When handed to `bash` (Git Bash/WSL), an extra
+// layer of shell parsing treats backslash as an escape character and strips it,
+// corrupting the path. Forward slashes work correctly in both bash and native
+// Windows path resolution.
+function toPosixPath(p) {
+  return p.replace(/\\/g, '/');
+}
 
 app.post('/compile', (req, res) => {
   const { code } = req.body;
@@ -16,10 +26,9 @@ app.post('/compile', (req, res) => {
     return res.status(400).json({ error: 'Request body must include a non-empty "code" string.' });
   }
 
-  // Each compile gets its own throwaway temp directory so concurrent requests never collide
   const jobDir = fs.mkdtempSync(path.join(os.tmpdir(), 'sketch-'));
-  const inoPath = path.join(jobDir, 'sketch.ino');
-  const hexPath = path.join(jobDir, 'sketch.hex');
+  const inoPath = toPosixPath(path.join(jobDir, 'sketch.ino'));
+  const hexPath = toPosixPath(path.join(jobDir, 'sketch.hex'));
   fs.writeFileSync(inoPath, code);
 
   execFile(
@@ -28,14 +37,8 @@ app.post('/compile', (req, res) => {
     { timeout: COMPILE_TIMEOUT_MS },
     (err, stdout, stderr) => {
       if (err) {
-        // Compiler errors (bad code) and infra errors (timeout, crash) both land here.
-        // We return them as plain text -- this is what a "your code has an error" message
-        // in the editor UI will eventually be built from.
         fs.rmSync(jobDir, { recursive: true, force: true });
-        return res.status(200).json({
-          success: false,
-          error: stderr || err.message,
-        });
+        return res.status(200).json({ success: false, error: stderr || err.message });
       }
       const hex = fs.readFileSync(hexPath, 'utf8');
       fs.rmSync(jobDir, { recursive: true, force: true });

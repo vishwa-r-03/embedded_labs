@@ -8,7 +8,6 @@
 .landing-nav {
   display: flex;
   align-items: center;
-  justify-content: space-between;
   padding: 24px 48px;
 }
 
@@ -18,20 +17,6 @@
   font-weight: 600;
   letter-spacing: 0.08em;
   color: var(--text-primary);
-}
-
-.landing-nav-cta {
-  font-family: var(--font-mono);
-  font-size: 13px;
-  color: var(--copper-bright);
-  border: 1px solid var(--copper);
-  padding: 8px 16px;
-  border-radius: var(--radius-sm);
-  transition: background 0.15s;
-}
-
-.landing-nav-cta:hover {
-  background: rgba(198, 137, 88, 0.12);
 }
 
 /* ---- Hero ---- */
@@ -207,7 +192,7 @@
   font-size: 14px;
 }
 
-/* ---- Tracks ---- */
+/* ---- Curriculum / Tracks ---- */
 .tracks-section {
   padding: 0 48px 80px;
   max-width: 1200px;
@@ -223,19 +208,20 @@
   margin-bottom: 20px;
 }
 
-.track-card {
-  display: block;
+.curriculum-track {
   background: var(--bg-panel);
   border: 1px solid var(--border-subtle);
   border-radius: var(--radius-md);
-  padding: 28px;
-  margin-bottom: 16px;
-  transition: border-color 0.15s, background 0.15s;
+  padding: 28px 28px 8px;
+  margin-bottom: 24px;
 }
 
-.track-card:hover {
-  border-color: var(--copper);
-  background: var(--bg-panel-raised);
+.curriculum-track-header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 12px;
 }
 
 .track-card-name {
@@ -243,19 +229,62 @@
   font-size: 18px;
   font-weight: 600;
   color: var(--text-primary);
-  margin-bottom: 8px;
-}
-
-.track-card-desc {
-  font-size: 14px;
-  margin-bottom: 16px;
-  max-width: 560px;
 }
 
 .track-card-cta {
   font-family: var(--font-mono);
   font-size: 13px;
   color: var(--copper-bright);
+  white-space: nowrap;
+  transition: color 0.15s;
+}
+
+.track-card-cta:hover {
+  color: var(--copper);
+}
+
+.curriculum-track-summary {
+  font-size: 14px;
+  max-width: 720px;
+  margin-bottom: 20px;
+}
+
+.curriculum-modules {
+  border-top: 1px solid var(--border-subtle);
+  padding-top: 16px;
+  padding-bottom: 16px;
+}
+
+.curriculum-module {
+  margin-bottom: 14px;
+}
+
+.curriculum-module-name {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  letter-spacing: 0.02em;
+  color: var(--text-muted);
+  margin-bottom: 6px;
+}
+
+.curriculum-topic-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.curriculum-topic-item {
+  font-size: 13.5px;
+  color: var(--text-secondary);
+  padding: 3px 0;
+}
+
+.curriculum-topic-title {
+  color: var(--text-primary);
+}
+
+.curriculum-topic-focus {
+  color: var(--text-muted);
 }
 
 /* ---- Footer ---- */
@@ -288,5 +317,9 @@
   .landing-footer {
     padding-left: 24px;
     padding-right: 24px;
+  }
+  .curriculum-track-header {
+    flex-direction: column;
+    gap: 4px;
   }
 }

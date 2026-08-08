@@ -1,4 +1,4 @@
-import { NavLink } from 'react-router-dom';
+import { NavLink, Link } from 'react-router-dom';
 import { tracks } from '../data/curriculum';
 import { useProgress } from '../hooks/useProgress';
 import './Sidebar.css';
@@ -9,6 +9,10 @@ export default function Sidebar({ activeTrackId }) {
 
   return (
     <nav className="sidebar" aria-label="Curriculum topics">
+      <Link to="/" className="sidebar-home-link">
+        ← Home
+      </Link>
+
       <div className="sidebar-track-switch">
         {tracks.map((t) => (
           <NavLink

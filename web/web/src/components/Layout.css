@@ -10,10 +10,6 @@
 }
 
 @media (max-width: 720px) {
-  .layout {
-    flex-direction: column;
-  }
-  .layout-main {
-    padding: 24px 20px 60px;
-  }
+  .layout { flex-direction: column; }
+  .layout-main { padding: 24px 20px 60px; }
 }

@@ -7,7 +7,6 @@ function readProgress() {
     const raw = localStorage.getItem(STORAGE_KEY);
     return raw ? JSON.parse(raw) : {};
   } catch {
-    // Corrupted or inaccessible storage (e.g. private browsing) -- fail safe to empty.
     return {};
   }
 }
@@ -20,9 +19,6 @@ function writeProgress(data) {
   }
 }
 
-// A tiny pub-sub so multiple components (e.g. Sidebar + TopicPage) stay in
-// sync the instant progress changes, without prop-drilling or a full state
-// management library.
 const listeners = new Set();
 function notify() {
   for (const listener of listeners) listener();
@@ -46,7 +42,6 @@ export function isTopicComplete(topicId) {
   return Boolean(readProgress()[topicId]);
 }
 
-// React hook: re-renders the component whenever progress changes anywhere.
 export function useProgress() {
   const subscribe = useCallback((callback) => {
     listeners.add(callback);
@@ -54,8 +49,6 @@ export function useProgress() {
   }, []);
 
   const getSnapshot = useCallback(() => {
-    // useSyncExternalStore needs a stable snapshot value; we return the raw
-    // JSON string so identity only changes when the underlying data does.
     try {
       return localStorage.getItem(STORAGE_KEY) || '{}';
     } catch {

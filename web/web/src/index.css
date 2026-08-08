@@ -1,5 +1,4 @@
 :root {
-  /* Color -- PCB / oscilloscope inspired, not a generic dark theme */
   --bg-base: #12181a;
   --bg-panel: #1a2226;
   --bg-panel-raised: #212b30;
@@ -15,7 +14,6 @@
   --text-secondary: #b7c0c0;
   --text-muted: #7c8888;
 
-  /* Type */
   --font-mono: 'IBM Plex Mono', ui-monospace, 'SF Mono', monospace;
   --font-sans: 'IBM Plex Sans', -apple-system, sans-serif;
 
@@ -23,15 +21,8 @@
   --radius-md: 8px;
 }
 
-* {
-  box-sizing: border-box;
-}
-
-html,
-body,
-#root {
-  height: 100%;
-}
+* { box-sizing: border-box; }
+html, body, #root { height: 100%; }
 
 body {
   margin: 0;
@@ -43,35 +34,17 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
-h1,
-h2,
-h3,
-h4 {
+h1, h2, h3, h4 {
   font-family: var(--font-mono);
   font-weight: 600;
   margin: 0;
   letter-spacing: -0.01em;
 }
 
-p {
-  margin: 0;
-  color: var(--text-secondary);
-}
-
-a {
-  color: inherit;
-  text-decoration: none;
-}
-
-button {
-  font-family: var(--font-sans);
-  cursor: pointer;
-}
-
-code,
-pre {
-  font-family: var(--font-mono);
-}
+p { margin: 0; color: var(--text-secondary); }
+a { color: inherit; text-decoration: none; }
+button { font-family: var(--font-sans); cursor: pointer; }
+code, pre { font-family: var(--font-mono); }
 
 :focus-visible {
   outline: 2px solid var(--copper-bright);
@@ -79,9 +52,7 @@ pre {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  *,
-  *::before,
-  *::after {
+  *, *::before, *::after {
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;

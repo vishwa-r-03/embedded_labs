@@ -1,7 +1,4 @@
 // Structured index of the curriculum defined in docs/curriculum.md.
-// This is metadata only (ids, titles, focus lines) -- full lesson content
-// (theory/code/problem/solution) will be loaded per-topic later once the
-// content-authoring pipeline exists. For now this drives navigation.
 
 export const tracks = [
   {
@@ -90,10 +87,6 @@ export const tracks = [
   },
 ];
 
-// Flattens all topics across all tracks/modules into a single ordered list,
-// each entry carrying its track/module context. Used for "next/previous topic"
-// navigation and for finding the very first topic (the Landing page's
-// "Get Started" button target).
 export function getAllTopicsFlat() {
   const flat = [];
   for (const track of tracks) {
