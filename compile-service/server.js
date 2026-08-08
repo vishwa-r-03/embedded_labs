@@ -6,18 +6,41 @@ const os = require('os');
 const path = require('path');
 
 const app = express();
-app.use(cors()); // the web app runs on a different port (Vite dev server) -- needs cross-origin access
+app.use(cors());
 app.use(express.json({ limit: '256kb' }));
 
 const BUILD_SCRIPT = toPosixPath(path.join(__dirname, '..', 'build.sh'));
 const COMPILE_TIMEOUT_MS = 10_000;
+const BASH_PATH = resolveBashPath();
 
-// On Windows, paths use backslashes. When handed to `bash` (Git Bash/WSL), an extra
-// layer of shell parsing treats backslash as an escape character and strips it,
-// corrupting the path. Forward slashes work correctly in both bash and native
-// Windows path resolution.
 function toPosixPath(p) {
   return p.replace(/\\/g, '/');
+}
+
+// On Windows, the bare command "bash" can resolve to WSL's bash stub
+// (C:\Windows\System32\bash.exe) instead of Git Bash, depending on what's on
+// PATH and in what order. WSL's bash can't see Windows-style paths at all
+// (it needs /mnt/c/... instead of C:/...), which silently breaks this even
+// though the file genuinely exists. Git Bash, unlike WSL, understands
+// Windows-style paths directly -- so we look for it explicitly by its known
+// install locations rather than trusting whatever "bash" happens to resolve
+// to on a given machine.
+function resolveBashPath() {
+  if (process.platform !== 'win32') return 'bash';
+
+  const candidates = [
+    'C:\\Program Files\\Git\\bin\\bash.exe',
+    'C:\\Program Files (x86)\\Git\\bin\\bash.exe',
+  ];
+  for (const candidate of candidates) {
+    if (fs.existsSync(candidate)) return candidate;
+  }
+  console.warn(
+    'Warning: Git Bash not found at the usual install locations. Falling back to "bash" on PATH, ' +
+    'which may resolve to WSL and fail on Windows-style paths. If compiles fail with ' +
+    '"No such file or directory" despite the file existing, this is likely why.'
+  );
+  return 'bash';
 }
 
 app.post('/compile', (req, res) => {
@@ -32,7 +55,7 @@ app.post('/compile', (req, res) => {
   fs.writeFileSync(inoPath, code);
 
   execFile(
-    'bash',
+    BASH_PATH,
     [BUILD_SCRIPT, inoPath, hexPath],
     { timeout: COMPILE_TIMEOUT_MS },
     (err, stdout, stderr) => {
@@ -47,9 +70,10 @@ app.post('/compile', (req, res) => {
   );
 });
 
-app.get('/health', (req, res) => res.json({ status: 'ok' }));
+app.get('/health', (req, res) => res.json({ status: 'ok', bashPath: BASH_PATH }));
 
 const PORT = process.env.PORT || 4000;
 app.listen(PORT, () => {
   console.log(`Compile service listening on http://localhost:${PORT}`);
+  console.log(`Using bash at: ${BASH_PATH}`);
 });

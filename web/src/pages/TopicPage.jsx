@@ -7,6 +7,7 @@ import { findTopic, getAllTopicsFlat } from '../data/curriculum';
 import { getLessonContent } from '../data/lessons';
 import { useProgress } from '../hooks/useProgress';
 import { runFastForward } from '../lib/simulationEngine';
+import { hexToProgram } from '../lib/intelHex';
 import { arduinoPinToPort } from '../lib/pinMap';
 import { COMPILE_SERVICE_URL } from '../config';
 import './TopicPage.css';
@@ -99,7 +100,8 @@ function Workspace({ topic, lesson }) {
       // Grade first (fast, headless), then hand the hex to the live visual simulator.
       if (lesson.circuit && lesson.check) {
         const { port, bit } = arduinoPinToPort(lesson.circuit.pin);
-        const events = runFastForward(data.hex, CHECK_WINDOW_MS, [{ port, bit, label: lesson.circuit.label }]);
+        const program = hexToProgram(data.hex);
+        const events = runFastForward(program, CHECK_WINDOW_MS, [{ port, bit, label: lesson.circuit.label }]);
         const result = lesson.check(events);
         setCheckResult(result);
         if (result.pass) markComplete(topic.id);
