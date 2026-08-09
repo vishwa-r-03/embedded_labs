@@ -10,3 +10,11 @@ export function arduinoPinToPort(pin) {
   if (n >= 8 && n <= 13) return { port: 'B', bit: n - 8 };
   throw new Error(`Unsupported pin: ${pin}`);
 }
+
+// A0-A5 map directly to ADC channels 0-5 on the ATmega328P.
+export function arduinoPinToADCChannel(pin) {
+  if (typeof pin !== 'string' || !pin.startsWith('A')) {
+    throw new Error(`Expected an analog pin like "A0", got: ${pin}`);
+  }
+  return parseInt(pin.slice(1), 10);
+}

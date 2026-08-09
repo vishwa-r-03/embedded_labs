@@ -1,32 +1,52 @@
 import { useEffect, useRef, useState } from 'react';
 import '@wokwi/elements/dist/esm/led-element.js';
+import '@wokwi/elements/dist/esm/pushbutton-element.js';
+import '@wokwi/elements/dist/esm/potentiometer-element.js';
+import '@wokwi/elements/dist/esm/servo-element.js';
+import '@wokwi/elements/dist/esm/buzzer-element.js';
 import { avrInstruction } from 'avr8js';
-import { createSimulation, readPinState, CLOCK_HZ } from '../lib/simulationEngine';
+import { createSimulation, CLOCK_HZ } from '../lib/simulationEngine';
 import { hexToProgram } from '../lib/intelHex';
-import { arduinoPinToPort } from '../lib/pinMap';
+import { circuitParts } from '../lib/circuitParts';
 import './CircuitSimulator.css';
 
+// Generic renderer + simulation loop over whatever components a lesson
+// declares. All type-specific behavior (how a button drives the chip, how an
+// LED's brightness is computed, etc.) lives in lib/circuitParts.js -- this
+// component just iterates components and calls into that registry. Adding a
+// new component type never requires touching this file's simulation loop.
 export default function CircuitSimulator({ hex, circuit }) {
-  const ledRef = useRef(null);
+  const elementRefs = useRef({});
   const [running, setRunning] = useState(false);
+  const components = circuit?.components ?? [];
 
   useEffect(() => {
-    if (!hex || !circuit) {
+    if (!hex || components.length === 0) {
       setRunning(false);
       return;
     }
 
     let cancelled = false;
     let rafId = null;
+    const instances = []; // { component, state, tick, cleanup }
 
     const program = hexToProgram(hex);
-    const { cpu, ports } = createSimulation(program);
-    const { port, bit } = arduinoPinToPort(circuit.pin);
+    const sim = createSimulation(program);
+    const { cpu } = sim;
+
+    for (const component of components) {
+      const handler = circuitParts[component.type];
+      const el = elementRefs.current[component.pin];
+      if (!handler || !el) continue;
+      const ctx = { ...sim, el, component };
+      const { state, cleanup } = handler.init(ctx);
+      instances.push({ ctx, state, tick: handler.tick, cleanup });
+    }
 
     setRunning(true);
     let lastFrameTime = performance.now();
 
-    function tick(now) {
+    function frame(now) {
       if (cancelled) return;
       const elapsedMs = now - lastFrameTime;
       lastFrameTime = now;
@@ -38,27 +58,47 @@ export default function CircuitSimulator({ hex, circuit }) {
         avrInstruction(cpu);
         cpu.tick();
       }
-      if (ledRef.current) {
-        ledRef.current.value = readPinState(ports, port, bit) === 1;
+      for (const instance of instances) {
+        instance.tick(instance.ctx, instance.state);
       }
-      rafId = requestAnimationFrame(tick);
+      rafId = requestAnimationFrame(frame);
     }
-    rafId = requestAnimationFrame(tick);
+    rafId = requestAnimationFrame(frame);
 
     return () => {
       cancelled = true;
       if (rafId) cancelAnimationFrame(rafId);
+      for (const instance of instances) instance.cleanup?.();
     };
-  }, [hex, circuit]);
+  }, [hex, circuit]); // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
     <div className="circuit-sim">
       <div className="circuit-sim-board">
-        {circuit?.type === 'single-led' ? (
-          <wokwi-led ref={ledRef} color="red"></wokwi-led>
-        ) : (
-          <p className="circuit-sim-unsupported">This circuit type isn't wired up yet.</p>
-        )}
+        {components.length === 0 && <p className="circuit-sim-unsupported">No circuit configured for this exercise yet.</p>}
+        {components.map((comp) => (
+          <div key={comp.pin} className="circuit-sim-component">
+            {comp.type === 'led' && (
+              <wokwi-led ref={(el) => (elementRefs.current[comp.pin] = el)} color={comp.color ?? 'red'}></wokwi-led>
+            )}
+            {comp.type === 'button' && (
+              <wokwi-pushbutton ref={(el) => (elementRefs.current[comp.pin] = el)} color={comp.color ?? 'blue'}></wokwi-pushbutton>
+            )}
+            {comp.type === 'potentiometer' && (
+              <wokwi-potentiometer
+                ref={(el) => (elementRefs.current[comp.pin] = el)}
+                min={0}
+                max={comp.max ?? 1023}
+                value={comp.initialValue ?? 512}
+              ></wokwi-potentiometer>
+            )}
+            {comp.type === 'servo' && (
+              <wokwi-servo ref={(el) => (elementRefs.current[comp.pin] = el)} horn={comp.horn ?? 'single'}></wokwi-servo>
+            )}
+            {comp.type === 'buzzer' && <wokwi-buzzer ref={(el) => (elementRefs.current[comp.pin] = el)}></wokwi-buzzer>}
+            {comp.label && <div className="circuit-sim-component-label">{comp.label}</div>}
+          </div>
+        ))}
       </div>
       <div className="circuit-sim-status">
         {running ? 'Running -- live compiled code, executing in your browser.' : 'Compile your code to see it run.'}
