@@ -8,11 +8,11 @@ import { getLessonContent } from '../data/lessons';
 import { useProgress } from '../hooks/useProgress';
 import { runFastForward } from '../lib/simulationEngine';
 import { hexToProgram } from '../lib/intelHex';
-import { arduinoPinToPort } from '../lib/pinMap';
+import { arduinoPinToPort, arduinoPinToADCChannel } from '../lib/pinMap';
 import { COMPILE_SERVICE_URL } from '../config';
 import './TopicPage.css';
 
-const CHECK_WINDOW_MS = 4000; // how much simulated chip-time we fast-forward through to grade
+const DEFAULT_CHECK_WINDOW_MS = 4000; // how much simulated chip-time we fast-forward through to grade, if a lesson doesn't specify its own
 
 export default function TopicPage() {
   const { trackId, topicId } = useParams();
@@ -98,10 +98,21 @@ function Workspace({ topic, lesson }) {
       }
 
       // Grade first (fast, headless), then hand the hex to the live visual simulator.
-      if (lesson.circuit && lesson.check) {
-        const { port, bit } = arduinoPinToPort(lesson.circuit.pin);
+      if (lesson.checkPins && lesson.check) {
         const program = hexToProgram(data.hex);
-        const events = runFastForward(program, CHECK_WINDOW_MS, [{ port, bit, label: lesson.circuit.label }]);
+        const watchPins = lesson.checkPins.map((cp) => ({ ...arduinoPinToPort(cp.pin), label: cp.label }));
+        const driveSchedule = (lesson.driveSchedule ?? []).map((d) =>
+          d.analogPin !== undefined
+            ? { channel: arduinoPinToADCChannel(d.analogPin), atMs: d.atMs, voltage: (d.rawValue / 1023) * 5 }
+            : { ...arduinoPinToPort(d.pin), atMs: d.atMs, value: d.value }
+        );
+        const events = runFastForward(
+          program,
+          lesson.checkWindowMs ?? DEFAULT_CHECK_WINDOW_MS,
+          watchPins,
+          driveSchedule,
+          lesson.ultrasonicSensors ?? []
+        );
         const result = lesson.check(events);
         setCheckResult(result);
         if (result.pass) markComplete(topic.id);

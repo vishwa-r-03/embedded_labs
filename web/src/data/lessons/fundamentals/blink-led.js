@@ -45,10 +45,10 @@ void loop() {
 `,
 
   circuit: {
-    type: 'single-led',
-    pin: 13,
-    label: 'LED',
+    components: [{ type: 'led', pin: 13, label: 'LED', color: 'red' }],
   },
+
+  checkPins: [{ pin: 13, label: 'LED' }],
 
   // Runs after a successful compile. `events` is the pin-toggle timeline
   // produced by the fast headless simulation (see lib/simulationEngine.js).

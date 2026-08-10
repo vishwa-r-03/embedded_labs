@@ -4,11 +4,18 @@ import '@wokwi/elements/dist/esm/pushbutton-element.js';
 import '@wokwi/elements/dist/esm/potentiometer-element.js';
 import '@wokwi/elements/dist/esm/servo-element.js';
 import '@wokwi/elements/dist/esm/buzzer-element.js';
+import '@wokwi/elements/dist/esm/hc-sr04-element.js';
 import { avrInstruction } from 'avr8js';
 import { createSimulation, CLOCK_HZ } from '../lib/simulationEngine';
 import { hexToProgram } from '../lib/intelHex';
 import { circuitParts } from '../lib/circuitParts';
 import './CircuitSimulator.css';
+
+// Most components are keyed by their single 'pin'; the ultrasonic sensor
+// has trigPin/echoPin instead, so it needs its own key.
+function componentKey(comp) {
+  return comp.pin ?? comp.trigPin;
+}
 
 // Generic renderer + simulation loop over whatever components a lesson
 // declares. All type-specific behavior (how a button drives the chip, how an
@@ -36,7 +43,7 @@ export default function CircuitSimulator({ hex, circuit }) {
 
     for (const component of components) {
       const handler = circuitParts[component.type];
-      const el = elementRefs.current[component.pin];
+      const el = elementRefs.current[componentKey(component)];
       if (!handler || !el) continue;
       const ctx = { ...sim, el, component };
       const { state, cleanup } = handler.init(ctx);
@@ -77,25 +84,28 @@ export default function CircuitSimulator({ hex, circuit }) {
       <div className="circuit-sim-board">
         {components.length === 0 && <p className="circuit-sim-unsupported">No circuit configured for this exercise yet.</p>}
         {components.map((comp) => (
-          <div key={comp.pin} className="circuit-sim-component">
+          <div key={componentKey(comp)} className="circuit-sim-component">
             {comp.type === 'led' && (
-              <wokwi-led ref={(el) => (elementRefs.current[comp.pin] = el)} color={comp.color ?? 'red'}></wokwi-led>
+              <wokwi-led ref={(el) => (elementRefs.current[componentKey(comp)] = el)} color={comp.color ?? 'red'}></wokwi-led>
             )}
             {comp.type === 'button' && (
-              <wokwi-pushbutton ref={(el) => (elementRefs.current[comp.pin] = el)} color={comp.color ?? 'blue'}></wokwi-pushbutton>
+              <wokwi-pushbutton ref={(el) => (elementRefs.current[componentKey(comp)] = el)} color={comp.color ?? 'blue'}></wokwi-pushbutton>
             )}
             {comp.type === 'potentiometer' && (
               <wokwi-potentiometer
-                ref={(el) => (elementRefs.current[comp.pin] = el)}
+                ref={(el) => (elementRefs.current[componentKey(comp)] = el)}
                 min={0}
                 max={comp.max ?? 1023}
                 value={comp.initialValue ?? 512}
               ></wokwi-potentiometer>
             )}
             {comp.type === 'servo' && (
-              <wokwi-servo ref={(el) => (elementRefs.current[comp.pin] = el)} horn={comp.horn ?? 'single'}></wokwi-servo>
+              <wokwi-servo ref={(el) => (elementRefs.current[componentKey(comp)] = el)} horn={comp.horn ?? 'single'}></wokwi-servo>
             )}
-            {comp.type === 'buzzer' && <wokwi-buzzer ref={(el) => (elementRefs.current[comp.pin] = el)}></wokwi-buzzer>}
+            {comp.type === 'buzzer' && <wokwi-buzzer ref={(el) => (elementRefs.current[componentKey(comp)] = el)}></wokwi-buzzer>}
+            {comp.type === 'ultrasonic' && (
+              <wokwi-hc-sr04 ref={(el) => (elementRefs.current[componentKey(comp)] = el)}></wokwi-hc-sr04>
+            )}
             {comp.label && <div className="circuit-sim-component-label">{comp.label}</div>}
           </div>
         ))}

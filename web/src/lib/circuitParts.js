@@ -1,5 +1,6 @@
 import { readPinState } from './simulationEngine';
 import { arduinoPinToPort, arduinoPinToADCChannel } from './pinMap';
+import { createUltrasonicSensor } from './ultrasonicSensor';
 
 const CLOCK_HZ = 16_000_000;
 
@@ -94,10 +95,20 @@ export const circuitParts = {
   // angle -- this is real pulse-width measurement, not a hardcoded formula
   // matching a specific sketch, so it works for any correct or incorrect
   // implementation the learner writes.
+  //
+  // Pulse range (544-2400us) matches the real Arduino Servo library's actual
+  // documented defaults (MIN_PULSE_WIDTH/MAX_PULSE_WIDTH) -- verified against
+  // the real library, not assumed. A bare-metal sketch using a different
+  // convention (e.g. a simplified 1000-2000us range) will show a
+  // correspondingly approximate angle here; the displayed angle is a visual
+  // aid only. Grading always checks raw pulse width in microseconds
+  // directly, never this display angle, to avoid exactly this ambiguity.
   servo: {
     init(ctx) {
       const { port, bit } = arduinoPinToPort(ctx.component.pin);
       const state = { port, bit, lastPinState: readPinState(ctx.ports, port, bit), riseCycles: null };
+      const MIN_PULSE_US = 544;
+      const MAX_PULSE_US = 2400;
       const listener = () => {
         const now = readPinState(ctx.ports, port, bit);
         if (now !== state.lastPinState) {
@@ -105,7 +116,7 @@ export const circuitParts = {
             state.riseCycles = ctx.cpu.cycles;
           } else if (state.riseCycles !== null) {
             const pulseUs = ((ctx.cpu.cycles - state.riseCycles) / CLOCK_HZ) * 1_000_000;
-            const angle = ((pulseUs - 1000) / 1000) * 180; // 1000us=0deg, 2000us=180deg
+            const angle = ((pulseUs - MIN_PULSE_US) / (MAX_PULSE_US - MIN_PULSE_US)) * 180;
             ctx.el.angle = Math.max(0, Math.min(180, angle));
           }
           state.lastPinState = now;
@@ -138,6 +149,28 @@ export const circuitParts = {
     tick(ctx, state) {
       const cyclesSinceToggle = ctx.cpu.cycles - state.lastToggleCycles;
       ctx.el.hasSignal = cyclesSinceToggle < CLOCK_HZ * 0.05; // toggled within the last 50ms
+    },
+  },
+
+  // HC-SR04 ultrasonic distance sensor: a genuinely active virtual
+  // peripheral (not just a static value like the potentiometer) -- it
+  // watches for a trigger pulse and generates a correctly-timed echo
+  // response. The actual timing logic lives in ultrasonicSensor.js, shared
+  // with the grading engine (simulationEngine.js) so both use identical
+  // behavior.
+  ultrasonic: {
+    init(ctx) {
+      const sensor = createUltrasonicSensor({
+        cpu: ctx.cpu,
+        ports: ctx.ports,
+        trigPin: ctx.component.trigPin,
+        echoPin: ctx.component.echoPin,
+        distanceCm: ctx.component.distanceCm ?? 50,
+      });
+      return { state: { sensor }, cleanup: sensor.cleanup };
+    },
+    tick(ctx, state) {
+      state.sensor.poll();
     },
   },
 };

@@ -13,6 +13,7 @@ import {
   avrInstruction,
   PinState,
 } from 'avr8js';
+import { createUltrasonicSensor } from './ultrasonicSensor';
 
 const CLOCK_HZ = 16_000_000; // Arduino Uno's ATmega328P runs at 16MHz
 
@@ -50,12 +51,14 @@ export function readPinState(ports, port, bit) {
 // exercise involving input, not just watching outputs. Each entry:
 // { port, bit, atMs, value } -- value is applied via port.setPin() once the
 // simulation reaches atMs.
-export function runFastForward(program, durationMs, watchPins, driveSchedule = []) {
-  const { cpu, ports } = createSimulation(program);
+export function runFastForward(program, durationMs, watchPins, driveSchedule = [], ultrasonicSensors = []) {
+  const { cpu, ports, adc } = createSimulation(program);
   const events = [];
   const lastState = {};
   const schedule = [...driveSchedule].sort((a, b) => a.atMs - b.atMs);
   let nextDriveIndex = 0;
+
+  const sensors = ultrasonicSensors.map((cfg) => createUltrasonicSensor({ cpu, ports, ...cfg }));
 
   for (const wp of watchPins) {
     const key = `${wp.port}${wp.bit}`;
@@ -77,10 +80,16 @@ export function runFastForward(program, durationMs, watchPins, driveSchedule = [
     avrInstruction(cpu);
     cpu.tick();
 
+    for (const sensor of sensors) sensor.poll();
+
     const nowMs = (cpu.cycles / CLOCK_HZ) * 1000;
     while (nextDriveIndex < schedule.length && nowMs >= schedule[nextDriveIndex].atMs) {
       const d = schedule[nextDriveIndex];
-      ports[d.port].setPin(d.bit, d.value);
+      if (d.channel !== undefined) {
+        adc.channelValues[d.channel] = d.voltage; // analog: set ADC channel directly
+      } else {
+        ports[d.port].setPin(d.bit, d.value); // digital: drive a pin
+      }
       nextDriveIndex++;
     }
 
@@ -88,6 +97,8 @@ export function runFastForward(program, durationMs, watchPins, driveSchedule = [
       break; // bailed out -- program likely hung; partial events are still returned
     }
   }
+
+  for (const sensor of sensors) sensor.cleanup();
   return events;
 }
 
