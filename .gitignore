@@ -2,3 +2,4 @@ node_modules/
 *.elf
 .DS_Store
 ArduinoCore-avr/
+GEMINI.md
