@@ -70,10 +70,33 @@
   color: var(--text-muted);
 }
 
+.circuit-sim-footer {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  margin-top: 10px;
+}
+
 .circuit-sim-status {
   font-family: var(--font-mono);
   font-size: 11.5px;
   color: var(--text-muted);
-  margin-top: 10px;
   text-align: center;
+}
+
+.circuit-sim-mute-btn {
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+  color: var(--text-secondary);
+  background: transparent;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  padding: 4px 10px;
+  transition: border-color 0.15s, color 0.15s;
+}
+
+.circuit-sim-mute-btn:hover {
+  border-color: var(--copper);
+  color: var(--copper-bright);
 }

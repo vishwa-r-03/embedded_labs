@@ -136,23 +136,96 @@ export const circuitParts = {
   // pin). We show it as "sounding" if the pin has toggled recently -- tone()
   // toggles constantly while active and stops entirely when noTone() is
   // called, so recency of the last toggle is a reliable, simple signal.
+  //
+  // Beyond the visual, we also measure the actual frequency being generated
+  // (from the period between consecutive rising edges -- the same
+  // measure-the-real-signal approach the servo handler uses for pulse
+  // width) and play it through a real Web Audio oscillator, so the buzzer
+  // actually sounds like whatever frequency the learner's code requested.
   buzzer: {
     init(ctx) {
       const { port, bit } = arduinoPinToPort(ctx.component.pin);
-      const state = { port, bit, lastPinState: readPinState(ctx.ports, port, bit), lastToggleCycles: -Infinity };
+      const state = {
+        port,
+        bit,
+        lastPinState: readPinState(ctx.ports, port, bit),
+        lastToggleCycles: -Infinity,
+        lastRiseCycles: null,
+        currentFreqHz: 0,
+        audioCtx: null,
+        oscillator: null,
+        gainNode: null,
+      };
+
+      // Web Audio setup. This only works after a user gesture (browsers block
+      // audio otherwise) -- init() runs from the "Compile & Run" click, which
+      // counts, but we still fail silently rather than throw if audio is
+      // unavailable for any reason (unsupported browser, blocked, etc.), so a
+      // learner without working audio still gets the visual indicator.
+      try {
+        const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+        const audioCtx = new AudioContextClass();
+        const oscillator = audioCtx.createOscillator();
+        const gainNode = audioCtx.createGain();
+        oscillator.type = 'square'; // closer to a real piezo buzzer's tone than a pure sine
+        oscillator.frequency.value = 440;
+        gainNode.gain.value = 0; // starts silent; ramped up only while actually sounding
+        oscillator.connect(gainNode);
+        gainNode.connect(audioCtx.destination);
+        oscillator.start();
+        if (audioCtx.state === 'suspended') audioCtx.resume();
+        state.audioCtx = audioCtx;
+        state.oscillator = oscillator;
+        state.gainNode = gainNode;
+      } catch {
+        // Audio unavailable -- the visual hasSignal indicator still works fine.
+      }
+
       const listener = () => {
         const now = readPinState(ctx.ports, port, bit);
         if (now !== state.lastPinState) {
+          if (now === 1) {
+            if (state.lastRiseCycles !== null) {
+              const periodSec = (ctx.cpu.cycles - state.lastRiseCycles) / CLOCK_HZ;
+              if (periodSec > 0) state.currentFreqHz = 1 / periodSec;
+            }
+            state.lastRiseCycles = ctx.cpu.cycles;
+          }
           state.lastPinState = now;
           state.lastToggleCycles = ctx.cpu.cycles;
         }
       };
       ctx.ports[port].addListener(listener);
-      return { state, cleanup: () => ctx.ports[port].removeListener(listener) };
+
+      return {
+        state,
+        cleanup: () => {
+          ctx.ports[port].removeListener(listener);
+          try {
+            state.oscillator?.stop();
+            state.audioCtx?.close();
+          } catch {
+            // already stopped/closed -- nothing to do
+          }
+        },
+      };
     },
     tick(ctx, state) {
       const cyclesSinceToggle = ctx.cpu.cycles - state.lastToggleCycles;
-      ctx.el.hasSignal = cyclesSinceToggle < CLOCK_HZ * 0.05; // toggled within the last 50ms
+      const active = cyclesSinceToggle < CLOCK_HZ * 0.05; // toggled within the last 50ms
+      ctx.el.hasSignal = active;
+
+      if (!state.gainNode || !state.audioCtx) return;
+      const soundEnabled = ctx.soundEnabledRef?.current ?? true;
+      const now = state.audioCtx.currentTime;
+      const audible = active && soundEnabled && state.currentFreqHz > 20 && state.currentFreqHz < 20000;
+
+      if (audible) {
+        state.oscillator.frequency.setTargetAtTime(state.currentFreqHz, now, 0.01);
+        state.gainNode.gain.setTargetAtTime(0.15, now, 0.01); // smooth ramp avoids audible clicks
+      } else {
+        state.gainNode.gain.setTargetAtTime(0, now, 0.02);
+      }
     },
   },
 

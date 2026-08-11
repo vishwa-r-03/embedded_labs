@@ -24,7 +24,14 @@ function componentKey(comp) {
 export default function CircuitSimulator({ hex, circuit }) {
   const elementRefs = useRef({});
   const [running, setRunning] = useState(false);
+  const [soundEnabled, setSoundEnabled] = useState(true);
+  const soundEnabledRef = useRef(soundEnabled);
   const components = circuit?.components ?? [];
+  const hasBuzzer = components.some((c) => c.type === 'buzzer');
+
+  useEffect(() => {
+    soundEnabledRef.current = soundEnabled;
+  }, [soundEnabled]);
 
   useEffect(() => {
     if (!hex || components.length === 0) {
@@ -44,7 +51,7 @@ export default function CircuitSimulator({ hex, circuit }) {
       const handler = circuitParts[component.type];
       const el = elementRefs.current[componentKey(component)];
       if (!handler || !el) continue;
-      const ctx = { ...sim, el, component };
+      const ctx = { ...sim, el, component, soundEnabledRef };
       const { state, cleanup } = handler.init(ctx);
       instances.push({ ctx, state, tick: handler.tick, cleanup });
     }
@@ -111,8 +118,15 @@ export default function CircuitSimulator({ hex, circuit }) {
           </div>
         ))}
       </div>
-      <div className="circuit-sim-status">
-        {running ? 'Running -- live compiled code, executing in your browser.' : 'Compile your code to see it run.'}
+      <div className="circuit-sim-footer">
+        <div className="circuit-sim-status">
+          {running ? 'Running -- live compiled code, executing in your browser.' : 'Compile your code to see it run.'}
+        </div>
+        {hasBuzzer && (
+          <button className="circuit-sim-mute-btn" onClick={() => setSoundEnabled((s) => !s)}>
+            {soundEnabled ? '🔊 Sound on' : '🔇 Sound off'}
+          </button>
+        )}
       </div>
     </div>
   );
