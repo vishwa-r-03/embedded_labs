@@ -10,9 +10,11 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     binutils-avr \
     git \
     bash \
+    ca-certificates \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
+
 
 # Clone the Arduino core source and Servo library into the image at build time,
 # same sources used throughout local development.
