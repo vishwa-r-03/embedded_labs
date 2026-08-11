@@ -2,7 +2,8 @@ name: Deploy to GitHub Pages
 
 on:
   push:
-    branches: [main, master]
+    # Set this to ONLY the primary branch you use (e.g. main OR master)
+    branches: [master]
   workflow_dispatch: # allows manually re-running from the Actions tab
 
 permissions:
@@ -22,7 +23,7 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 22
           cache: npm
           cache-dependency-path: web/package-lock.json
 
@@ -34,7 +35,8 @@ jobs:
         working-directory: web
         run: npm run build
 
-      - uses: actions/upload-pages-artifact@v3
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
         with:
           path: web/dist
 
