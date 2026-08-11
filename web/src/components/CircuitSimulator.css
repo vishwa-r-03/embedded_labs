@@ -58,6 +58,16 @@
   cursor: pointer;
 }
 
+.circuit-sim-distance-slider {
+  margin-top: 4px;
+}
+
+.circuit-sim-distance-readout {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--signal-green);
+}
+
 .circuit-sim-component-label {
   font-family: var(--font-mono);
   font-size: 11px;

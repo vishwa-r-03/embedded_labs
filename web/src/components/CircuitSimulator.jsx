@@ -23,9 +23,11 @@ function componentKey(comp) {
 // new component type never requires touching this file's simulation loop.
 export default function CircuitSimulator({ hex, circuit }) {
   const elementRefs = useRef({});
+  const sliderRefs = useRef({}); // separate from elementRefs: some components (ultrasonic) have both a visual and an interactive control
   const [running, setRunning] = useState(false);
   const [soundEnabled, setSoundEnabled] = useState(true);
   const soundEnabledRef = useRef(soundEnabled);
+  const [distanceReadouts, setDistanceReadouts] = useState({});
   const components = circuit?.components ?? [];
   const hasBuzzer = components.some((c) => c.type === 'buzzer');
 
@@ -51,7 +53,8 @@ export default function CircuitSimulator({ hex, circuit }) {
       const handler = circuitParts[component.type];
       const el = elementRefs.current[componentKey(component)];
       if (!handler || !el) continue;
-      const ctx = { ...sim, el, component, soundEnabledRef };
+      const sliderEl = sliderRefs.current[componentKey(component)];
+      const ctx = { ...sim, el, sliderEl, component, soundEnabledRef };
       const { state, cleanup } = handler.init(ctx);
       instances.push({ ctx, state, tick: handler.tick, cleanup });
     }
@@ -112,7 +115,23 @@ export default function CircuitSimulator({ hex, circuit }) {
             )}
             {comp.type === 'buzzer' && <wokwi-buzzer ref={(el) => (elementRefs.current[componentKey(comp)] = el)}></wokwi-buzzer>}
             {comp.type === 'ultrasonic' && (
-              <wokwi-hc-sr04 ref={(el) => (elementRefs.current[componentKey(comp)] = el)}></wokwi-hc-sr04>
+              <>
+                <wokwi-hc-sr04 ref={(el) => (elementRefs.current[componentKey(comp)] = el)}></wokwi-hc-sr04>
+                <input
+                  type="range"
+                  className="circuit-sim-pot circuit-sim-distance-slider"
+                  ref={(el) => (sliderRefs.current[componentKey(comp)] = el)}
+                  min={2}
+                  max={400}
+                  defaultValue={comp.distanceCm ?? 50}
+                  onInput={(e) =>
+                    setDistanceReadouts((prev) => ({ ...prev, [componentKey(comp)]: e.target.value }))
+                  }
+                />
+                <div className="circuit-sim-distance-readout">
+                  {distanceReadouts[componentKey(comp)] ?? comp.distanceCm ?? 50} cm
+                </div>
+              </>
             )}
             {comp.label && <div className="circuit-sim-component-label">{comp.label}</div>}
           </div>

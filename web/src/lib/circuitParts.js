@@ -244,7 +244,23 @@ export const circuitParts = {
         echoPin: ctx.component.echoPin,
         distanceCm: ctx.component.distanceCm ?? 50,
       });
-      return { state: { sensor }, cleanup: sensor.cleanup };
+
+      // The distance slider (rendered separately from the sensor's visual
+      // element) lets the learner adjust what the sensor "sees" live, so
+      // they can watch their code respond to a real changing input.
+      let onSliderInput = null;
+      if (ctx.sliderEl) {
+        onSliderInput = () => sensor.setDistance(Number(ctx.sliderEl.value));
+        ctx.sliderEl.addEventListener('input', onSliderInput);
+      }
+
+      return {
+        state: { sensor },
+        cleanup: () => {
+          sensor.cleanup();
+          if (ctx.sliderEl && onSliderInput) ctx.sliderEl.removeEventListener('input', onSliderInput);
+        },
+      };
     },
     tick(ctx, state) {
       state.sensor.poll();

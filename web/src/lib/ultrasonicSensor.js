@@ -11,9 +11,10 @@ const ECHO_DELAY_US = 200; // brief real-world delay between trigger and echo st
 // `ports` and `cpu` are the live simulation objects; this function is
 // engine-agnostic otherwise, so it works identically whether driven by an
 // animation frame (live view) or a tight grading loop (headless).
-export function createUltrasonicSensor({ cpu, ports, trigPin, echoPin, distanceCm }) {
+export function createUltrasonicSensor({ cpu, ports, trigPin, echoPin, distanceCm: initialDistanceCm }) {
   const trig = arduinoPinToPort(trigPin);
   const echo = arduinoPinToPort(echoPin);
+  let distanceCm = initialDistanceCm; // mutable so a live UI control can adjust it mid-simulation
   const state = {
     lastTrigState: readPinState(ports, trig.port, trig.bit),
     trigRiseCycles: null,
@@ -61,6 +62,9 @@ export function createUltrasonicSensor({ cpu, ports, trigPin, echoPin, distanceC
 
   return {
     poll,
+    setDistance: (cm) => {
+      distanceCm = cm;
+    },
     cleanup: () => ports[trig.port].removeListener(listener),
   };
 }
