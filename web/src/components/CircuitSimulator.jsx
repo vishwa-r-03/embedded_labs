@@ -1,7 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import '@wokwi/elements/dist/esm/led-element.js';
 import '@wokwi/elements/dist/esm/pushbutton-element.js';
-import '@wokwi/elements/dist/esm/potentiometer-element.js';
 import '@wokwi/elements/dist/esm/servo-element.js';
 import '@wokwi/elements/dist/esm/buzzer-element.js';
 import '@wokwi/elements/dist/esm/hc-sr04-element.js';
@@ -92,12 +91,14 @@ export default function CircuitSimulator({ hex, circuit }) {
               <wokwi-pushbutton ref={(el) => (elementRefs.current[componentKey(comp)] = el)} color={comp.color ?? 'blue'}></wokwi-pushbutton>
             )}
             {comp.type === 'potentiometer' && (
-              <wokwi-potentiometer
+              <input
+                type="range"
+                className="circuit-sim-pot"
                 ref={(el) => (elementRefs.current[componentKey(comp)] = el)}
                 min={0}
                 max={comp.max ?? 1023}
-                value={comp.initialValue ?? 512}
-              ></wokwi-potentiometer>
+                defaultValue={comp.initialValue ?? 512}
+              />
             )}
             {comp.type === 'servo' && (
               <wokwi-servo ref={(el) => (elementRefs.current[componentKey(comp)] = el)} horn={comp.horn ?? 'single'}></wokwi-servo>

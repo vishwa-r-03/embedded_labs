@@ -1,16 +1,68 @@
 .circuit-sim-board {
   display: flex;
-  align-items: center;
+  align-items: flex-end;
   justify-content: center;
+  gap: 36px;
   background: #0d1212;
   border: 1px solid var(--border-subtle);
   border-radius: var(--radius-md);
   padding: 32px;
   min-height: 140px;
+  flex-wrap: wrap;
+}
+
+.circuit-sim-component {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
 }
 
 .circuit-sim-board wokwi-led {
-  transform: scale(1.8);
+  transform: scale(1.6);
+}
+
+.circuit-sim-board wokwi-pushbutton {
+  transform: scale(1.3);
+  cursor: pointer;
+}
+
+.circuit-sim-pot {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 140px;
+  height: 4px;
+  margin: 20px 0;
+  background: var(--border-strong);
+  border-radius: 2px;
+  cursor: pointer;
+}
+
+.circuit-sim-pot::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--copper-bright);
+  border: 2px solid var(--bg-base);
+  cursor: pointer;
+}
+
+.circuit-sim-pot::-moz-range-thumb {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--copper-bright);
+  border: 2px solid var(--bg-base);
+  cursor: pointer;
+}
+
+.circuit-sim-component-label {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--text-muted);
+  letter-spacing: 0.03em;
 }
 
 .circuit-sim-unsupported {

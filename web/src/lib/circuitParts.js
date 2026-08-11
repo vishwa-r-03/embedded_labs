@@ -45,7 +45,11 @@ export const circuitParts = {
       if (windowCycles <= 0) return;
       const ongoingSegment = state.lastPinState === 1 ? ctx.cpu.cycles - state.lastChangeCycles : 0;
       const brightness = (state.highCyclesAccum + ongoingSegment) / windowCycles;
-      ctx.el.value = state.lastPinState === 1;
+      // Use the averaged brightness to decide on/off, not the instantaneous
+      // pin level -- PWM toggles far faster than our frame rate, so sampling
+      // the instant level each frame just captures a random phase of the
+      // switching and looks like flicker instead of a steady glow.
+      ctx.el.value = brightness > 0.02;
       ctx.el.brightness = Math.max(0, Math.min(1, brightness));
       state.highCyclesAccum = 0;
       state.windowStartCycles = ctx.cpu.cycles;
