@@ -44,6 +44,9 @@ SKETCH_CPP="$BUILD_DIR/sketch.cpp"
 COMMON_FLAGS="-mmcu=$MCU -DF_CPU=$F_CPU -DARDUINO=10819 -DARDUINO_AVR_UNO -DARDUINO_ARCH_AVR -DDECIMAL_DIG=21 \
   -I$CORE_SRC -I$VARIANT_SRC $LIBRARY_INCLUDE_FLAGS -Os -ffunction-sections -fdata-sections -flto -w"
 
+# Explicitly enforce gnu++11 standard and disable thread-safe statics for C++ files
+CXX_FLAGS="-std=gnu++11 -fno-threadsafe-statics -fno-exceptions -fpermissive"
+
 for f in "$CORE_SRC"/*.c; do
   obj="$BUILD_DIR/core_$(basename "${f%.c}").o"
   avr-gcc -c $COMMON_FLAGS "$f" -o "$obj"
@@ -57,7 +60,7 @@ done
 
 for f in "$CORE_SRC"/*.cpp; do
   obj="$BUILD_DIR/core_$(basename "${f%.cpp}").o"
-  avr-g++ -c $COMMON_FLAGS -fno-exceptions -fpermissive "$f" -o "$obj"
+  avr-g++ -c $COMMON_FLAGS $CXX_FLAGS "$f" -o "$obj"
 done
 
 # Compile each configured library's sources (only pulled into the link if the
@@ -66,10 +69,10 @@ i=0
 for f in "${LIBRARY_SOURCES[@]}"; do
   i=$((i + 1))
   obj="$BUILD_DIR/lib${i}_$(basename "${f%.cpp}").o"
-  avr-g++ -c $COMMON_FLAGS -fno-exceptions -fpermissive "$f" -o "$obj"
+  avr-g++ -c $COMMON_FLAGS $CXX_FLAGS "$f" -o "$obj"
 done
 
-avr-g++ -c $COMMON_FLAGS -fno-exceptions -fpermissive "$SKETCH_CPP" -o "$BUILD_DIR/sketch.o"
+avr-g++ -c $COMMON_FLAGS $CXX_FLAGS "$SKETCH_CPP" -o "$BUILD_DIR/sketch.o"
 
 avr-gcc -mmcu=$MCU -Os -flto -fuse-linker-plugin -Wl,--gc-sections \
   -o "$BUILD_DIR/firmware.elf" "$BUILD_DIR"/*.o -lm
