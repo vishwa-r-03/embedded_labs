@@ -31,6 +31,19 @@ jobs:
         working-directory: web
         run: npm ci
 
+      - name: Debug -- confirm .env.production is present
+        working-directory: web
+        run: |
+          echo "Files in web/ matching .env*:"
+          ls -la | grep -i env || echo "  (none found)"
+          echo ""
+          if [ -f .env.production ]; then
+            echo ".env.production contents:"
+            cat .env.production
+          else
+            echo ".env.production does NOT exist in the checked-out repo at this path."
+          fi
+
       - name: Build
         working-directory: web
         run: npm run build
